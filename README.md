@@ -19,3 +19,14 @@ To the threading.Thread class it adds the following
 ## Logging
 The logging module offers getlogger, a factory function for logging.Logger that 
 allows to easily build a logger with my preferred output style.
+
+## Streams
+The streams module will be fledged out to handle java-like streams of object, 
+with the ability to filter and evaluate and handle exceptions.
+As of now only the elm class is implemented, that allows to define "symbolic-like"
+math (`elm + 5` returns a callable that increments by 5 the given value)
+
+## Math
+The module offers the primes package, to check if a number is prime and to generate
+primes. The module has the numbers up to 4001 cached, for better performance at
+low values.
