@@ -4,11 +4,21 @@ from typing import Any, TypeVar, Generic
 
 _R = TypeVar("_R")
 
+
 class rThread(threading.Thread, Generic[_R]):
-    def __init__(self, group: None = None, target: Callable[..., _R] | None = None, name: str | None = None, args: Iterable[Any] = ..., kwargs: Mapping[str, Any] | None = None, *, daemon: bool | None = None) -> None:
+    def __init__(
+        self,
+        group: None = None,
+        target: Callable[..., _R] | None = None,
+        name: str | None = None,
+        args: Iterable[Any] = ...,
+        kwargs: Mapping[str, Any] | None = None,
+        *,
+        daemon: bool | None = None
+    ) -> None:
         super().__init__(group, target, name, args, kwargs, daemon=daemon)
-        self._ret:_R
-        self._exc:Exception|None = None
+        self._ret: _R
+        self._exc: Exception | None = None
 
     def run(self):
         """Method representing the thread's activity.
@@ -20,15 +30,15 @@ class rThread(threading.Thread, Generic[_R]):
 
         """
         try:
-            if self._target is not None: # type: ignore
+            if self._target is not None:  # type: ignore
                 try:
-                    self._ret = self._target(*self._args, **self._kwargs) # type: ignore
+                    self._ret = self._target(*self._args, **self._kwargs)  # type: ignore
                 except Exception as e:
                     self._exc = e
         finally:
             # Avoid a refcycle if the thread is running a function with
             # an argument that has a member that points to the thread.
-            del self._target, self._args, self._kwargs # type: ignore
+            del self._target, self._args, self._kwargs  # type: ignore
 
     @property
     def result(self) -> _R:
@@ -37,10 +47,10 @@ class rThread(threading.Thread, Generic[_R]):
         return self._ret
 
     @property
-    def exception(self) -> Exception|None:
+    def exception(self) -> Exception | None:
         return self._exc
 
-    def fuse(self, timeout: float | None = None) -> _R|None:
+    def fuse(self, timeout: float | None = None) -> _R | None:
         """Wait until the thread terminates and return its return value. If the
         thread raises an exception, returns None.
 
@@ -50,7 +60,7 @@ class rThread(threading.Thread, Generic[_R]):
 
         When the timeout argument is present and not None, it should be a
         floating point number specifying a timeout for the operation in seconds
-        (or fractions thereof). If a timeout happens, that is if the thread has 
+        (or fractions thereof). If a timeout happens, that is if the thread has
         not been join()ed, the function raises a TimeoutException.
 
         When the timeout argument is not present or None, the operation will
@@ -63,4 +73,3 @@ class rThread(threading.Thread, Generic[_R]):
         if self.is_alive():
             raise TimeoutError
         return self.result
-
