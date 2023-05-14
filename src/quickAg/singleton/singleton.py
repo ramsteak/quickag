@@ -1,40 +1,5 @@
 import threading
-from typing import (
-    Protocol,
-    Any,
-    final,
-    runtime_checkable,
-    NamedTuple,
-    Self,
-    overload,
-    Callable,
-)
-from types import TracebackType
-from dataclasses import dataclass
-from enum import Enum
-
-
-@runtime_checkable
-class SupportsLock(Protocol):
-    def __enter__(self) -> Any:
-        ...
-
-    def __exit__(
-        self,
-        exc_type: type[BaseException] | None,
-        exc_val: BaseException | None,
-        exc_tb: TracebackType | None,
-    ) -> None:
-        ...
-
-    def acquire(self) -> bool:
-        ...
-
-    def release(self) -> None:
-        ...
-
-    def locked(self) -> bool:
-        ...
+from typing import Callable, Self, overload
 
 
 class Singleton:
