@@ -341,3 +341,11 @@ def log(__x, base):
 
 
 elm = Elm()
+
+
+def even(__x: int) -> bool:
+    return __x % 2 == 0
+
+
+def odd(__x: int) -> bool:
+    return __x % 2 != 0
