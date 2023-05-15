@@ -1,4 +1,7 @@
 # QuickAg
+![python](https://github.com/ramsteak/quickAg/actions/workflows/python-package.yml/badge.svg)
+![black](https://img.shields.io/badge/code%20style-black-000000.svg)
+
 The package aims to combine every useful module, function and class I built. It 
 is a collection of useful stuff, packaged into independent submodules.
 
