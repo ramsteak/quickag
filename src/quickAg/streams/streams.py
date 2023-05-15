@@ -68,7 +68,8 @@ class Stream(Iterator[_T], Generic[_T]):
 
     def filter(self, key: Callable[[_T], bool]) -> Stream[_T]:
         def w(e: StreamResult[_T]):
-            if e.exc is not None: return e
+            if e.exc is not None:
+                return e
             try:
                 return StreamResult(
                     e.val, None, _SFlow.NORM if key(e.val) else _SFlow.SKIP
@@ -81,7 +82,8 @@ class Stream(Iterator[_T], Generic[_T]):
 
     def filterout(self, key: Callable[[_T], bool]) -> Stream[_T]:
         def w(e: StreamResult[_T]):
-            if e.exc is not None: return e
+            if e.exc is not None:
+                return e
             try:
                 return StreamResult(
                     e.val, None, _SFlow.SKIP if key(e.val) else _SFlow.NORM
@@ -94,7 +96,8 @@ class Stream(Iterator[_T], Generic[_T]):
 
     def stop(self, key: Callable[[_T], bool]) -> Stream[_T]:
         def w(e: StreamResult[_T]) -> StreamResult[_T]:
-            if e.exc is not None: return e
+            if e.exc is not None:
+                return e
             try:
                 return StreamResult(
                     e.val, None, _SFlow.STOP if key(e.val) else _SFlow.NORM
@@ -107,7 +110,8 @@ class Stream(Iterator[_T], Generic[_T]):
 
     def stopafter(self, key: Callable[[_T], bool]) -> Stream[_T]:
         def w(e: StreamResult[_T]) -> StreamResult[_T]:
-            if e.exc is not None: return e
+            if e.exc is not None:
+                return e
             try:
                 return StreamResult(
                     e.val, None, _SFlow.STAF if key(e.val) else _SFlow.NORM
@@ -120,7 +124,8 @@ class Stream(Iterator[_T], Generic[_T]):
 
     def eval(self, func: Callable[[_T], _R]) -> Stream[_R]:
         def w(e: StreamResult[_T]) -> StreamResult[_R | None]:
-            if e.exc is not None: return e # type: ignore
+            if e.exc is not None:
+                return e  # type: ignore
             try:
                 return StreamResult(func(e.val), None, _SFlow.NORM)
             except Exception as exc:
@@ -149,7 +154,8 @@ class Stream(Iterator[_T], Generic[_T]):
         cache = set[_T]()
 
         def w(e: StreamResult[_T]) -> StreamResult[_T]:
-            if e.exc is not None: return e
+            if e.exc is not None:
+                return e
             if e.val in cache:
                 return StreamResult(e.val, None, _SFlow.SKIP)
             cache.add(e.val)
