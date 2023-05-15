@@ -1,5 +1,4 @@
 import logging
-from sys import stdout
 from typing import Sequence, TypeAlias, TypeVar, Protocol
 
 fname: TypeAlias = str

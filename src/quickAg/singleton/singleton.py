@@ -37,17 +37,12 @@ def singleton(cls=None, truth=None) -> object:
     if cls is not None:
         return cls()
 
-    match truth:
-        case True:
-            cls__bool__ = lambda s: True
-        case False:
-            cls__bool__ = lambda s: False
-        case None:
-
-            def r(s):
-                raise NotImplementedError("The object has its truth defined as None")
-
-            cls__bool__ = r
+    def cls__bool__(*args):
+        if truth is True:
+            return True
+        if truth is False:
+            return False
+        raise NotImplementedError("The object has its truth defined as None")
 
     def wrap(cls):
         setattr(cls, "__bool__", cls__bool__)

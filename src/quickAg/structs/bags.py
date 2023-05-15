@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Callable, Collection, Iterable, Mapping, Self, TypeVar, overload
+from typing import Callable, Collection, Iterable, Mapping, Self, TypeVar
 
 _K = TypeVar("_K")
 _V = TypeVar("_V")

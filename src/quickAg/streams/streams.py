@@ -206,9 +206,13 @@ class stream(metaclass=streammeta):
         return Stream(es for es in zip_longest(*streams, fillvalue=fillvalue))
 
     @staticmethod
-    def range(*args):
+    def range(*args) -> Stream[int]:
         return Stream(range(*args))
 
     @staticmethod
-    def count(*args):
+    def count(*args) -> Stream[int]:
         return Stream(count(*args))
+
+    @staticmethod
+    def randint(a: int, b: int) -> Stream[int]:
+        return Stream((randint(a, b) for _ in count()))
