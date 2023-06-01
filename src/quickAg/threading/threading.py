@@ -263,7 +263,6 @@ class sThread(rThread, threading.Thread, Generic[_R, _S]):
         with self._statuslock:
             return self._sts
 
-    @property
     def status_nowait(self) -> _S:
         """Returns the status of the thread without using threading.Lock. Doing
         so might result in race conditions."""
