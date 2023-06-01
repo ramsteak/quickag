@@ -1,6 +1,6 @@
 from __future__ import annotations
-from dataclasses import dataclass, field
-from typing import Any, TypeVar, Generic, Iterable, Literal
+from dataclasses import dataclass
+from typing import TypeVar, Generic, Iterable
 from collections import deque
 
 from .exceptions import EmptyTreeError
