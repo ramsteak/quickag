@@ -1,3 +1,5 @@
-from .threading import rThread
+from ._threading import rThread
+
+del _threading
 
 __all__ = ["rThread"]
