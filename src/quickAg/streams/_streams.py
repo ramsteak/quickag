@@ -188,9 +188,18 @@ class streammeta(type):
     def naturals(self) -> Stream[int]:
         return Stream(count())
 
+    n = naturals
+    n0 = naturals
+
+    @property
+    def n1(self) -> Stream[int]:
+        return Stream(count(1))
+
     @property
     def integers(self) -> Stream[int]:
         return stream.robin(Stream(count(0, -1)), Stream(count(1, 1)))
+
+    i = integers
 
     @property
     def rand(self) -> Stream[float]:
@@ -200,22 +209,22 @@ class streammeta(type):
 
 
 class stream(metaclass=streammeta):
-    def __new__(cls, __iter: Iterable[_T]) -> Stream[_T]:
+    def __new__(cls, __iter):
         return Stream(__iter)
 
     @staticmethod
-    def robin(*streams: Stream[_T]) -> Stream[_T]:
+    def robin(*streams: Stream[Any]):
         return Stream(e for es in zip(*streams) for e in es)
 
     @staticmethod
-    def zip(*streams: Stream[_T]) -> Stream[tuple[_T, ...]]:
+    def zip(*streams: Stream[Any]):
         return Stream(es for es in zip(*streams))
 
     @staticmethod
     def zip_longest(
-        *streams: Stream[_T], fillvalue: Any = None
-    ) -> Stream[tuple[_T, ...]]:
-        return Stream(es for es in zip_longest(*streams, fillvalue=fillvalue))
+        *streams: Stream[Any], fillvalue: Any = None
+    ) -> Stream[tuple[Any, ...]]:
+        return Stream(es for es in zip_longest(*streams, fillvalue=fillvalue))  # type: ignore
 
     @staticmethod
     def range(*args) -> Stream[int]:
