@@ -17,6 +17,7 @@ count = true
 
 [tool.ruff]
 line-length = 120
+ignore = ["F821"]
 
 [build-system]
 requires = ["setuptools"]
