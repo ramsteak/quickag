@@ -13,6 +13,7 @@ from typing import (
 )
 from itertools import count, zip_longest
 from random import random, randint
+from dataclasses import dataclass
 
 
 class _SFlow(Enum):
@@ -25,11 +26,16 @@ class _SFlow(Enum):
 _T = TypeVar("_T")
 _R = TypeVar("_R")
 
-
-class StreamResult(NamedTuple, Generic[_T]):
+@dataclass(slots=True)
+class StreamResult(Generic[_T]):
     val: _T
     exc: Exception | None
     flw: _SFlow
+
+# class StreamResult(NamedTuple, Generic[_T]):
+#     val: _T
+#     exc: Exception | None
+#     flw: _SFlow
 
 
 class Stream(Iterator[_T], Generic[_T]):
