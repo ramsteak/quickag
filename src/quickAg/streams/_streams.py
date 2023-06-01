@@ -8,7 +8,6 @@ from typing import (
     Iterable,
     Iterator,
     Literal,
-    NamedTuple,
     TypeVar,
 )
 from itertools import count, zip_longest
