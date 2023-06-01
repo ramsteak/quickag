@@ -122,6 +122,18 @@ class Stream(Iterator[_T], Generic[_T]):
         self.__stack.append(w)
         return self
 
+    def limit(self, num: int) -> Stream[_T]:
+        localvars = [0]
+
+        def w(e: StreamResult[_T]) -> StreamResult[_T]:
+            if localvars[0] >= num:
+                return StreamResult(e.val, None, _SFlow.STOP)
+            localvars[0] += 1
+            return StreamResult(e.val, None, _SFlow.NORM)
+
+        self.__stack.append(w)
+        return self
+
     def eval(self, func: Callable[[_T], _R]) -> Stream[_R]:
         def w(e: StreamResult[_T]) -> StreamResult[_R | None]:
             if e.exc is not None:
@@ -210,8 +222,8 @@ class stream(metaclass=streammeta):
         return Stream(range(*args))
 
     @staticmethod
-    def count(*args) -> Stream[int]:
-        return Stream(count(*args))
+    def count(*args, **kwargs) -> Stream[int]:
+        return Stream(count(*args, **kwargs))
 
     @staticmethod
     def randint(a: int, b: int) -> Stream[int]:
