@@ -1,4 +1,5 @@
 from __future__ import annotations
+from ..math.primes import primes
 
 from enum import Enum
 from typing import (
@@ -9,6 +10,7 @@ from typing import (
     Iterator,
     Literal,
     TypeVar,
+    Container,
 )
 from itertools import count, zip_longest
 from random import random, randint
@@ -217,6 +219,10 @@ class Stream(Iterator[_T], Generic[_T]):
         self.__stack.append(w)
         return self
 
+    def __or__(self, out:Callable[[Iterator[_T]], Container[_T]]):
+        return out(self)
+    def __gt__(self, out:Callable[[Iterator[_T]], Container[_T]]):
+        return out(self)
 
 class callproperty(property):
     def __call__(self, *args: Any, **kwds: Any) -> Any:
@@ -248,6 +254,19 @@ class streammeta(type):
 
     random = rand
 
+    @property
+    def fibonacci(self) -> Stream[int]:
+        def fib() -> Iterable[int]:
+            a, b = 0, 1
+            while True:
+                yield a
+                b, a = a + b, b
+
+        return Stream(fib())
+
+    @property
+    def primes(self) -> Stream[int]:
+        return Stream(primes())
 
 class stream(metaclass=streammeta):
     def __new__(cls, __iter):
