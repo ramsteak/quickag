@@ -41,6 +41,7 @@ def test_gen():
     assert list(stream.n1.limit(5)) == [1, 2, 3, 4, 5]
     assert list(stream.i.limit(5)) == [0, 1, -1, 2, -2]
     assert list(stream.fibonacci.limit(7)) == [0, 1, 1, 2, 3, 5, 8]
+    assert list(stream.primes.limit(7)) == [2, 3, 5, 7, 11, 13, 17]
 
 
 def test_robin():
