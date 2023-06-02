@@ -214,7 +214,7 @@ class Elm:
             return Elm(lambda x: self.ev(x).__rxor__(other.ev(x)))
         return Elm(lambda x: self.ev(x).__rxor__(other))
 
-    # def __setitem__(self, other) -> Elm:
+    # def __setitem__(self, item, value) -> Elm:
     #     if isinstance(other, Elm):
     #         return Elm(lambda x: self.ev(x).__setitem__(other.ev(x)))
     #     return Elm(lambda x: self.ev(x).__setitem__(other))
