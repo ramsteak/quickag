@@ -25,11 +25,13 @@ class _SFlow(Enum):
 _T = TypeVar("_T")
 _R = TypeVar("_R")
 
+
 @dataclass(slots=True)
 class StreamResult(Generic[_T]):
     val: _T
     exc: Exception | None
     flw: _SFlow
+
 
 # class StreamResult(NamedTuple, Generic[_T]):
 #     val: _T
@@ -38,11 +40,12 @@ class StreamResult(Generic[_T]):
 
 
 class Stream(Iterator[_T], Generic[_T]):
-    def __init__(self, __iter: Iterable[_T]):
-        if not isinstance(__iter, Iterator):
-            self.__iter = iter(__iter)
-        else:
+    def __init__(self, __iter: Iterable[_T], *, forceraw: bool = False):
+        if isinstance(__iter, Stream) or forceraw:
             self.__iter = __iter
+        else:
+            self.__iter = (StreamResult(e, None, _SFlow.NORM) for e in __iter)
+
         self.__stack: list[Callable[[StreamResult], StreamResult]] = []
         self.__status: _SFlow = _SFlow.NORM
 
@@ -50,10 +53,17 @@ class Stream(Iterator[_T], Generic[_T]):
         return self
 
     def __next__(self) -> _T:
+        e = self._next_raw_()
+
+        if e.exc is not None:
+            raise e.exc
+        return e.val
+
+    def _next_raw_(self) -> StreamResult[_T]:
         if self.__status == _SFlow.STOP:
             raise StopIteration
 
-        e = StreamResult(self.__iter.__next__(), None, _SFlow.NORM)
+        e = self.__iter.__next__()
 
         for ev in self.__stack:
             e = ev(e)
@@ -61,15 +71,19 @@ class Stream(Iterator[_T], Generic[_T]):
                 case _SFlow.NORM:
                     continue
                 case _SFlow.SKIP:
-                    return self.__next__()
+                    return self._next_raw_()
                 case _SFlow.STOP:
                     raise StopIteration
                 case _SFlow.STAF:
                     self.__status = _SFlow.STOP
+        return e
 
-        if e.exc is not None:
-            raise e.exc
-        return e.val
+    def _iter_raw_(self) -> Iterator[StreamResult[_T]]:
+        try:
+            while True:
+                yield self._next_raw_()
+        except StopIteration:
+            return
 
     def filter(self, key: Callable[[_T], bool]) -> Stream[_T]:
         def w(e: StreamResult[_T]):
@@ -166,6 +180,28 @@ class Stream(Iterator[_T], Generic[_T]):
         self.__stack.append(w)
         return self
 
+    def excg(
+        self, exc: type[Exception], todo: Literal["skip", "stop"] = "skip"
+    ) -> Stream[_T]:
+        def w(e: StreamResult[_T]) -> StreamResult[_T]:
+            do = False
+            if isinstance(e.exc, ExceptionGroup):
+                for x in e.exc.exceptions:
+                    if isinstance(x, exc):
+                        do = True
+            elif isinstance(e.exc, exc):
+                do = True
+            if do:
+                match todo:
+                    case "skip":
+                        return StreamResult(e.val, None, _SFlow.SKIP)
+                    case "stop":
+                        return StreamResult(e.val, None, _SFlow.STOP)
+            return e
+
+        self.__stack.append(w)
+        return self
+
     @property
     def unique(self):
         cache = set[_T]()
@@ -219,16 +255,60 @@ class stream(metaclass=streammeta):
 
     @staticmethod
     def robin(*streams: Stream[Any]):
-        return Stream(e for es in zip(*streams) for e in es)
+        __iter = zip(*(s._iter_raw_() for s in streams))
+        return Stream((e for es in __iter for e in es), forceraw=True)
+
+    @staticmethod
+    def robin_longest(*streams: Stream[Any]):
+        __sent = object()
+        __iter = zip_longest(*(s._iter_raw_() for s in streams), fillvalue=__sent)
+        return Stream(
+            (e for es in __iter for e in es if e is not __sent), forceraw=True
+        )
+
+    @staticmethod
+    def cat(*streams: Stream[Any]) -> Stream[Any]:
+        def __iter(*st):
+            for s in st:
+                yield from s._iter_raw_()
+
+        return Stream(__iter(*streams), forceraw=True)
 
     @staticmethod
     def zip(*streams: Stream[Any]):
-        return Stream(es for es in zip(*streams))
+        def __iter(*st):
+            for ts in zip(*(s._iter_raw_() for s in st)):
+                exs = [e.exc for e in ts if e.exc is not None]
+                if exs:
+                    yield StreamResult(
+                        None,
+                        ExceptionGroup("Exceptions in stream iteration", exs),
+                        _SFlow.NORM,
+                    )
+                else:
+                    yield (StreamResult(tuple(t.val for t in ts), None, _SFlow.NORM))
+
+        return Stream(__iter(*streams), forceraw=True)
 
     @staticmethod
     def zip_longest(
         *streams: Stream[Any], fillvalue: Any = None
     ) -> Stream[tuple[Any, ...]]:
+        fval = fillvalue = StreamResult(fillvalue, None, _SFlow.NORM)
+
+        def __iter(*st):
+            for ts in zip_longest(*(s._iter_raw_() for s in st), fillvalue=fval):
+                exs = [e.exc for e in ts if e.exc is not None]
+                if exs:
+                    yield StreamResult(
+                        None,
+                        ExceptionGroup("Exceptions in stream iteration", exs),
+                        _SFlow.NORM,
+                    )
+                else:
+                    yield (StreamResult(tuple(t.val for t in ts), None, _SFlow.NORM))
+
+        return Stream(__iter(*streams), forceraw=True)
         return Stream(es for es in zip_longest(*streams, fillvalue=fillvalue))  # type: ignore
 
     @staticmethod

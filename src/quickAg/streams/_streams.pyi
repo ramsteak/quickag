@@ -46,8 +46,15 @@ class Stream(Iterator[_T], Generic[_T]):
     def exc(
         self, exc: type[Exception], todo: Literal["skip", "stop"] = "skip"
     ) -> Stream[_T]: ...
+    def excg(
+        self, exc: type[Exception], todo: Literal["skip", "stop"] = "skip"
+    ) -> Stream[_T]: ...
     @property
     def unique(self): ...
+    # undocumented:
+    # __init__(self, __iter, forceraw)
+    # _next_raw_(self)
+    # _iter_raw_(self)
 
 class streammeta(type):
     @property
@@ -87,7 +94,32 @@ class stream(metaclass=streammeta):
     ) -> Stream[_T1 | _T2 | _T3 | _T4]: ...
     @overload
     @staticmethod
-    def zip(*streams: Stream[_T]) -> Stream[_T]: ...
+    def robin(*streams: Stream[_T]) -> Stream[_T]: ...
+    @overload
+    @staticmethod
+    def robin_longest(stream1: Stream[_T1], /) -> Stream[_T1]: ...
+    @overload
+    @staticmethod
+    def robin_longest(
+        stream1: Stream[_T1], stream2: Stream[_T2], /
+    ) -> Stream[_T1 | _T2]: ...
+    @overload
+    @staticmethod
+    def robin_longest(
+        stream1: Stream[_T1], stream2: Stream[_T2], stream3: Stream[_T3], /
+    ) -> Stream[_T1 | _T2 | _T3]: ...
+    @overload
+    @staticmethod
+    def robin_longest(
+        stream1: Stream[_T1],
+        stream2: Stream[_T2],
+        stream3: Stream[_T3],
+        stream4: Stream[_T4],
+        /,
+    ) -> Stream[_T1 | _T2 | _T3 | _T4]: ...
+    @overload
+    @staticmethod
+    def robin_longest(*streams: Stream[_T]) -> Stream[_T]: ...
     @overload
     @staticmethod
     def zip(stream1: Stream[_T1], /) -> Stream[tuple[_T1, ...]]: ...
@@ -174,3 +206,26 @@ class stream(metaclass=streammeta):
     def count(*, step: SupportsIndex) -> Stream[int]: ...
     @staticmethod
     def randint(a: int, b: int) -> Stream[int]: ...
+    @overload
+    @staticmethod
+    def cat(stream1: Stream[_T1], /) -> Stream[_T1]: ...
+    @overload
+    @staticmethod
+    def cat(stream1: Stream[_T1], stream2: Stream[_T2], /) -> Stream[_T1 | _T2]: ...
+    @overload
+    @staticmethod
+    def cat(
+        stream1: Stream[_T1], stream2: Stream[_T2], stream3: Stream[_T3], /
+    ) -> Stream[_T1 | _T2 | _T3]: ...
+    @overload
+    @staticmethod
+    def cat(
+        stream1: Stream[_T1],
+        stream2: Stream[_T2],
+        stream3: Stream[_T3],
+        stream4: Stream[_T4],
+        /,
+    ) -> Stream[_T1 | _T2 | _T3 | _T4]: ...
+    @overload
+    @staticmethod
+    def cat(*streams: Stream[_T]) -> Stream[_T]: ...

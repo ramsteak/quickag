@@ -4,6 +4,16 @@ except ModuleNotFoundError:
     from quickAg.streams import stream, elm, even, odd
 
 
+class ZeroError(Exception):
+    ...
+
+
+def x0(__v: int) -> int:
+    if __v == 0:
+        raise ZeroError
+    return __v
+
+
 def test_stream():
     assert list(stream.n0.limit(5)) == [0, 1, 2, 3, 4]
 
@@ -30,30 +40,63 @@ def test_gen():
     assert list(stream.n.limit(5)) == [0, 1, 2, 3, 4]
     assert list(stream.n1.limit(5)) == [1, 2, 3, 4, 5]
     assert list(stream.i.limit(5)) == [0, 1, -1, 2, -2]
+    assert list(stream.fibonacci.limit(7)) == [0, 1, 1, 2, 3, 5, 8]
 
 
 def test_robin():
     s0 = stream.n0.limit(4)
     s1 = stream.n1.limit(5)
-    assert list(stream.robin(s0, s1)) == [0, 1, 1, 2, 2, 3, 3, 4]
+    ss = stream.robin(s0, s1)
+    assert list(ss) == [0, 1, 1, 2, 2, 3, 3, 4]
+
+
+def test_robin_exc():
+    s0 = stream.n1.limit(4).eval(x0)
+    s1 = stream.n0.limit(5).eval(x0)
+    ss = stream.robin(s0, s1).exc(ZeroError)
+    assert list(ss) == [1, 2, 1, 3, 2, 4, 3]
 
 
 def test_zip():
     s0 = stream.n0.limit(4)
     s1 = stream.n1.limit(5)
-    assert list(stream.zip(s0, s1)) == [(0, 1), (1, 2), (2, 3), (3, 4)]
+    ss = stream.zip(s0, s1)
+    assert list(ss) == [(0, 1), (1, 2), (2, 3), (3, 4)]
+
+
+def test_zip_exc():
+    s0 = stream.n1.limit(4).eval(x0)
+    s1 = stream.n0.limit(5).eval(x0)
+    ss = stream.zip(s0, s1).excg(ZeroError)
+    assert list(ss) == [(2, 1), (3, 2), (4, 3)]
 
 
 def test_zip_longest():
     s0 = stream.n0.limit(4)
     s1 = stream.n1.limit(5)
-    assert list(stream.zip_longest(s0, s1)) == [
-        (0, 1),
-        (1, 2),
-        (2, 3),
-        (3, 4),
-        (None, 5),
-    ]
+    ss = stream.zip_longest(s0, s1)
+    assert list(ss) == [(0, 1), (1, 2), (2, 3), (3, 4), (None, 5)]
+
+
+def test_zip_longest_exc():
+    s0 = stream.n1.limit(4).eval(x0)
+    s1 = stream.n0.limit(5).eval(x0)
+    ss = stream.zip_longest(s0, s1).excg(ZeroError)
+    assert list(ss) == [(2, 1), (3, 2), (4, 3), (None, 4)]
+
+
+def test_cat():
+    s0 = stream.n0.limit(4)
+    s1 = stream.n1.limit(5)
+    ss = stream.cat(s0, s1)
+    assert list(ss) == [0, 1, 2, 3, 1, 2, 3, 4, 5]
+
+
+def test_cat_exc():
+    s0 = stream.n1.limit(4).eval(x0)
+    s1 = stream.n0.limit(5).eval(x0)
+    ss = stream.cat(s0, s1).exc(ZeroError)
+    assert list(ss) == [1, 2, 3, 4, 1, 2, 3, 4]
 
 
 def test_range():
