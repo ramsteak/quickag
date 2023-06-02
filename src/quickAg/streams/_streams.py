@@ -31,8 +31,8 @@ _R = TypeVar("_R")
 @dataclass(slots=True)
 class StreamResult(Generic[_T]):
     val: _T
-    exc: Exception | None
-    flw: _SFlow
+    exc: Exception | None = None
+    flw: _SFlow = _SFlow.NORM
 
 
 # class StreamResult(NamedTuple, Generic[_T]):
@@ -46,7 +46,7 @@ class Stream(Iterator[_T], Generic[_T]):
         if isinstance(__iter, Stream) or forceraw:
             self.__iter = __iter
         else:
-            self.__iter = (StreamResult(e, None, _SFlow.NORM) for e in __iter)
+            self.__iter = (StreamResult(e) for e in __iter)
 
         self.__stack: list[Callable[[StreamResult], StreamResult]] = []
         self.__status: _SFlow = _SFlow.NORM
@@ -150,7 +150,7 @@ class Stream(Iterator[_T], Generic[_T]):
             if localvars[0] >= num:
                 return StreamResult(e.val, None, _SFlow.STOP)
             localvars[0] += 1
-            return StreamResult(e.val, None, _SFlow.NORM)
+            return StreamResult(e.val)
 
         self.__stack.append(w)
         return self
@@ -158,14 +158,14 @@ class Stream(Iterator[_T], Generic[_T]):
     def eval(self, func: Callable[[_T], _R]) -> Stream[_R]:
         def w(e: StreamResult[_T]) -> StreamResult[_R | None]:
             if e.exc is not None:
-                return e  # type: ignore
+                return e
             try:
-                return StreamResult(func(e.val), None, _SFlow.NORM)
+                return StreamResult(func(e.val))
             except Exception as exc:
                 return StreamResult(None, exc, _SFlow.NORM)
 
         self.__stack.append(w)
-        return self  # type: ignore
+        return self
 
     def exc(
         self, exc: type[Exception], todo: Literal["skip", "stop"] = "skip"
@@ -214,10 +214,31 @@ class Stream(Iterator[_T], Generic[_T]):
             if e.val in cache:
                 return StreamResult(e.val, None, _SFlow.SKIP)
             cache.add(e.val)
-            return StreamResult(e.val, None, _SFlow.NORM)
+            return StreamResult(e.val)
 
         self.__stack.append(w)
         return self
+
+    def call(self, func: Callable[..., _R]) -> Stream[_R]:
+        def w(e: StreamResult[_T]) -> StreamResult[_R | None]:
+            if e.exc is not None:
+                return e
+            try:
+                match e.val:
+                    case [[*a],{**k}] | [{**k},[*a]]:
+                        return StreamResult(func(*a, **k))
+                    case [*a]:
+                        return StreamResult(func(*a))
+                    case {**k}:
+                        return StreamResult(func(**k))
+                    case a:
+                        return StreamResult(func(a))
+            except Exception as exc:
+                return StreamResult(None, exc, _SFlow.NORM)
+
+        self.__stack.append(w)
+        return self
+    
 
     def __or__(self, out: Callable[[Iterator[_T]], Container[_T]]):
         return out(self)
@@ -308,7 +329,7 @@ class stream(metaclass=streammeta):
                         _SFlow.NORM,
                     )
                 else:
-                    yield (StreamResult(tuple(t.val for t in ts), None, _SFlow.NORM))
+                    yield (StreamResult(tuple(t.val for t in ts)))
 
         return Stream(__iter(*streams), forceraw=True)
 
@@ -316,7 +337,7 @@ class stream(metaclass=streammeta):
     def zip_longest(
         *streams: Stream[Any], fillvalue: Any = None
     ) -> Stream[tuple[Any, ...]]:
-        fval = fillvalue = StreamResult(fillvalue, None, _SFlow.NORM)
+        fval = fillvalue = StreamResult(fillvalue)
 
         def __iter(*st):
             for ts in zip_longest(*(s._iter_raw_() for s in st), fillvalue=fval):
@@ -328,10 +349,9 @@ class stream(metaclass=streammeta):
                         _SFlow.NORM,
                     )
                 else:
-                    yield (StreamResult(tuple(t.val for t in ts), None, _SFlow.NORM))
+                    yield (StreamResult(tuple(t.val for t in ts)))
 
         return Stream(__iter(*streams), forceraw=True)
-        return Stream(es for es in zip_longest(*streams, fillvalue=fillvalue))  # type: ignore
 
     @staticmethod
     def range(*args) -> Stream[int]:
