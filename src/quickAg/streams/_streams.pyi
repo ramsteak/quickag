@@ -73,7 +73,7 @@ class Stream(Iterator[_T], Generic[_T]):
         """
         If the given element has raised an exception of the given type during
         previous calculations, the method allows to ignore it and skip to the next
-        element or to stop the stream completely. 
+        element or to stop the stream completely.
         """
     def excg(
         self, exc: type[Exception], todo: Literal["skip", "stop"] = "skip"
@@ -83,28 +83,28 @@ class Stream(Iterator[_T], Generic[_T]):
         previous calculations, the method allows to ignore it and skip to the next
         element or to stop the stream completely. It also allows to check inside
         ExceptionGroups for the given exception.
-        Methods that operate on streams such as zip and zip_longest will join the 
+        Methods that operate on streams such as zip and zip_longest will join the
         exceptions into a single ExceptionGroup.
         """
     @property
     def unique(self):
         """
-        The method keeps a cache of all unique elements and returns them only if 
+        The method keeps a cache of all unique elements and returns them only if
         a new element is not contained in the cache."""
     # UNDOCUMENTED METHODS (THEY ARE ONLY TO BE USED INTERNALLY):
     # These methods allow to operate on the StreamResults, the carrier object that
     # streams use to handle flow, values and exceptions. They are used internally
     # for methods that operate between streams, such as cat, robin and zip. They
     # are not to be used externally.
-    #  
+    #
     # __init__(self, __iter, forceraw)
     # The forceraw option makes so that the stream will not wrap the values into
     # StreamResults, the iterable must already be of type Iterator[StreamResult]
-    #  
+    #
     # _next_raw_(self)
-    # The method yields the next StreamResult from the stream 
+    # The method yields the next StreamResult from the stream
     # _iter_raw_(self)
-    # The method iterates on all StreamResults of the stream 
+    # The method iterates on all StreamResults of the stream
 
 class streammeta(type):
     @property
@@ -130,13 +130,13 @@ class streammeta(type):
     @property
     def integers(self) -> Stream[int]:
         """
-        This factory returns a stream of all integers, alternating between 
+        This factory returns a stream of all integers, alternating between
         positive and negative values.
         """
     @property
     def i(self) -> Stream[int]:
         """
-        This factory returns a stream of all integers, alternating between 
+        This factory returns a stream of all integers, alternating between
         positive and negative values.
         """
     @property
@@ -152,7 +152,7 @@ class streammeta(type):
     @property
     def fibonacci(self) -> Stream[int]:
         """
-        This factory returns a stream of numbers following the Fibonacci 
+        This factory returns a stream of numbers following the Fibonacci
         sequence, starting with [0, 1].
         """
     @property
@@ -168,9 +168,9 @@ class stream(metaclass=streammeta):
     @staticmethod
     def robin(stream1: Stream[_T1], /) -> Stream[_T1]:
         """
-        The method allows to join multiple streams into a single stream by 
-        alternating the stream from which the value comes from. The resulting 
-        streams stops when the first stream ends, without returning the matching 
+        The method allows to join multiple streams into a single stream by
+        alternating the stream from which the value comes from. The resulting
+        streams stops when the first stream ends, without returning the matching
         values from the other streams:
         stream1 : 1, 2, 3  .
         stream2 : a, b, c, d, e  .
@@ -200,8 +200,8 @@ class stream(metaclass=streammeta):
     @staticmethod
     def robin_longest(stream1: Stream[_T1], /) -> Stream[_T1]:
         """
-        The method allows to join multiple streams into a single stream by 
-        alternating the stream from which the value comes from. The resulting 
+        The method allows to join multiple streams into a single stream by
+        alternating the stream from which the value comes from. The resulting
         streams continues until all values are exhausted:
         stream1       : 1, 2, 3  .
         stream2       : a, b, c, d, e  .
@@ -234,7 +234,7 @@ class stream(metaclass=streammeta):
     def zip(stream1: Stream[_T1], /) -> Stream[tuple[_T1, ...]]:
         """
         The method allows to join multiple streams into a single stream of tuples
-        by zipping the streams together. The resulting streams stops when the 
+        by zipping the streams together. The resulting streams stops when the
         first stream ends:
         stream1 : 1, 2, 3  .
         stream2 : a, b, c, d, e  .
@@ -269,7 +269,7 @@ class stream(metaclass=streammeta):
     ) -> Stream[tuple[_T1 | _F, ...]]:
         """
         The method allows to join multiple streams into a single stream of tuples
-        by zipping the streams together. The resulting streams continues until the 
+        by zipping the streams together. The resulting streams continues until the
         last value is returned. The other values are filled with fillvalue:
         stream1     : 1, 2, 3  .
         stream2     : a, b, c, d, e  .
@@ -311,7 +311,7 @@ class stream(metaclass=streammeta):
     def cat(stream1: Stream[_T1], /) -> Stream[_T1]:
         """
         The method allows to join multiple streams into a single stream by
-        concatenating the streams together. The resulting stream continues until the 
+        concatenating the streams together. The resulting stream continues until the
         last value is exhausted:
         stream1 : 1, 2, 3  .
         stream2 : a, b, c, d, e  .
@@ -341,7 +341,7 @@ class stream(metaclass=streammeta):
     @staticmethod
     def range(__stop: SupportsIndex, /) -> Stream[int]:
         """
-        The factory returns a stream of numbers dictated by the range values start, 
+        The factory returns a stream of numbers dictated by the range values start,
         stop and step, identical to the builtin range function.
         """
     @overload
@@ -373,4 +373,3 @@ class stream(metaclass=streammeta):
         """
         The factory returns a stream of random integers in the range [a, b].
         """
-    

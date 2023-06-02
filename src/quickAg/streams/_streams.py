@@ -219,10 +219,12 @@ class Stream(Iterator[_T], Generic[_T]):
         self.__stack.append(w)
         return self
 
-    def __or__(self, out:Callable[[Iterator[_T]], Container[_T]]):
+    def __or__(self, out: Callable[[Iterator[_T]], Container[_T]]):
         return out(self)
-    def __gt__(self, out:Callable[[Iterator[_T]], Container[_T]]):
+
+    def __gt__(self, out: Callable[[Iterator[_T]], Container[_T]]):
         return out(self)
+
 
 class callproperty(property):
     def __call__(self, *args: Any, **kwds: Any) -> Any:
@@ -267,6 +269,7 @@ class streammeta(type):
     @property
     def primes(self) -> Stream[int]:
         return Stream(primes())
+
 
 class stream(metaclass=streammeta):
     def __new__(cls, __iter):

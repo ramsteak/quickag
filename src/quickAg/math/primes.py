@@ -29,7 +29,8 @@ def is_prime(n: int) -> bool:
 def primes(max: int = None) -> Iterator[int]:
     if max is None:
         _qp = _quasiprimes_count()
-    else: _qp = _quasiprimes(max)
+    else:
+        _qp = _quasiprimes(max)
     for q in _qp:
         if is_prime(q):
             yield q
