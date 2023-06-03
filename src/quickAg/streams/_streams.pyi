@@ -67,6 +67,14 @@ class Stream(Iterator[_T], Generic[_T]):
         Evaluates the given function for each element of the stream, returning the
         result.
         """
+    def call(self, func: Callable[..., _R]) -> Stream[_R]:
+        """
+        Calls the given function with the arguments from the stream. The parameters
+        are extracted from the structure of the elements. It supports:
+            - (1, 2) -> func(1, 2)
+            - {"a": 1, "b": 2} -> func(a=2, b=3)
+            - ((1, 2), "c": 3) -> func(1, 2, c=3)
+        """
     def exc(
         self, exc: type[Exception], todo: Literal["skip", "stop"] = "skip"
     ) -> Stream[_T]:
