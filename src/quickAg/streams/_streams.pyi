@@ -11,6 +11,7 @@ from typing import (
     TypeVar,
     overload,
     SupportsIndex,
+    Any,
 )
 
 class _SFlow(Enum):
@@ -75,6 +76,11 @@ class Stream(Iterator[_T], Generic[_T]):
             - {"a": 1, "b": 2} -> func(a=2, b=3)
             - ((1, 2), "c": 3) -> func(1, 2, c=3)
         """
+    def act(self, func: Callable[..., Any]) -> Stream[_T]:
+        """
+        Calls the given function with elements of the stream as arguments. The
+        result is ignored and the original item is left in place.
+        """
     def exc(
         self, exc: type[Exception], todo: Literal["skip", "stop"] = "skip"
     ) -> Stream[_T]:
@@ -99,6 +105,9 @@ class Stream(Iterator[_T], Generic[_T]):
         """
         The method keeps a cache of all unique elements and returns them only if
         a new element is not contained in the cache."""
+    # def __or__(self, out: Callable[[Iterable[_T]], _R]) -> _R:...
+    # def __gt__(self, out: Callable[[Iterable[_T]], _R]) -> _R:...
+
     # UNDOCUMENTED METHODS (THEY ARE ONLY TO BE USED INTERNALLY):
     # These methods allow to operate on the StreamResults, the carrier object that
     # streams use to handle flow, values and exceptions. They are used internally
@@ -381,3 +390,5 @@ class stream(metaclass=streammeta):
         """
         The factory returns a stream of random integers in the range [a, b].
         """
+
+def null(__iter: Iterable[_T]) -> None: ...

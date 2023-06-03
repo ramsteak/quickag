@@ -10,7 +10,6 @@ from typing import (
     Iterator,
     Literal,
     TypeVar,
-    Container,
 )
 from itertools import count, zip_longest
 from random import random, randint
@@ -225,7 +224,7 @@ class Stream(Iterator[_T], Generic[_T]):
                 return e
             try:
                 match e.val:
-                    case [[*a],{**k}] | [{**k},[*a]]:
+                    case [[*a], {**k}] | [{**k}, [*a]]:
                         return StreamResult(func(*a, **k))
                     case [*a]:
                         return StreamResult(func(*a))
@@ -238,13 +237,25 @@ class Stream(Iterator[_T], Generic[_T]):
 
         self.__stack.append(w)
         return self
-    
 
-    def __or__(self, out: Callable[[Iterator[_T]], Container[_T]]):
-        return out(self)
+    def act(self, func: Callable[[_T], _R]) -> Stream[_R]:
+        def w(e: StreamResult[_T]) -> StreamResult[_R | None]:
+            if e.exc is not None:
+                return e
+            try:
+                func(e.val)
+                return StreamResult(e.val)
+            except Exception as exc:
+                return StreamResult(None, exc, _SFlow.NORM)
 
-    def __gt__(self, out: Callable[[Iterator[_T]], Container[_T]]):
-        return out(self)
+        self.__stack.append(w)
+        return self
+
+    # def __or__(self, out: Callable[[Iterable[_T]], Container[_T]]):
+    #     return out(self)
+
+    # def __gt__(self, out: Callable[[Iterable[_T]], Container[_T]]):
+    #     return out(self)
 
 
 class callproperty(property):
@@ -364,3 +375,8 @@ class stream(metaclass=streammeta):
     @staticmethod
     def randint(a: int, b: int) -> Stream[int]:
         return Stream((randint(a, b) for _ in count()))
+
+
+def null(__iter: Iterable[_T]) -> None:
+    for _ in __iter:
+        ...

@@ -106,3 +106,8 @@ def test_range():
 
 def test_count():
     assert list(stream.count(2, 3).limit(3)) == [2, 5, 8]
+
+
+def test_call():
+    ss = stream.range(5).eval(lambda x: x + 3).eval(range).call(lambda *x: sum(x))
+    assert list(ss) == [3, 6, 10, 15, 21]

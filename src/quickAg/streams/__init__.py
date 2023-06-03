@@ -1,5 +1,5 @@
 from ._elm import elm, even, ln, log, log1p, log2, log10, odd
-from ._streams import Stream, stream
+from ._streams import Stream, stream, null
 
 del _elm
 del _streams
@@ -15,4 +15,5 @@ __all__ = [
     "log1p",
     "log2",
     "log10",
+    "null",
 ]
