@@ -10,6 +10,7 @@ from typing import (
     Iterator,
     Literal,
     TypeVar,
+    NoReturn,
 )
 from itertools import count, zip_longest
 from random import random, randint
@@ -21,6 +22,7 @@ class _SFlow(Enum):
     SKIP = 1
     STOP = 2
     STAF = 3
+    EXCP = 4
 
 
 _T = TypeVar("_T")
@@ -43,9 +45,10 @@ class StreamResult(Generic[_T]):
 class Stream(Iterator[_T], Generic[_T]):
     def __init__(self, __iter: Iterable[_T], *, forceraw: bool = False):
         if isinstance(__iter, Stream) or forceraw:
-            self.__iter = __iter
+            self.__iter = __iter #type: ignore
         else:
             self.__iter = (StreamResult(e) for e in __iter)
+        self.__iter:Iterator[StreamResult[_T]]
 
         self.__stack: list[Callable[[StreamResult], StreamResult]] = []
         self.__status: _SFlow = _SFlow.NORM
@@ -56,28 +59,34 @@ class Stream(Iterator[_T], Generic[_T]):
     def __next__(self) -> _T:
         e = self._next_raw_()
 
-        if e.exc is not None:
-            raise e.exc
+        if e.flw != _SFlow.NORM:
+            raise RuntimeError(e)
         return e.val
 
-    def _next_raw_(self) -> StreamResult[_T]:
+    def _next_raw_(self) -> StreamResult:
         if self.__status == _SFlow.STOP:
             raise StopIteration
 
-        e = self.__iter.__next__()
+        try:
+            e = self.__iter.__next__()
+        except StopIteration:
+            e = StreamResult(None,None,_SFlow.STOP)
 
         for ev in self.__stack:
             e = ev(e)
-            match e.flw:
-                case _SFlow.NORM:
-                    continue
-                case _SFlow.SKIP:
-                    return self._next_raw_()
-                case _SFlow.STOP:
-                    raise StopIteration
-                case _SFlow.STAF:
-                    self.__status = _SFlow.STOP
-        return e
+
+        match e.flw:
+            case _SFlow.NORM:
+                return e
+            case _SFlow.SKIP:
+                return self._next_raw_()
+            case _SFlow.STOP:
+                raise StopIteration
+            case _SFlow.STAF:
+                self.__status = _SFlow.STOP
+                return StreamResult(e.val, e.exc, _SFlow.NORM)
+            case _SFlow.EXCP:
+                return e
 
     def _iter_raw_(self) -> Iterator[StreamResult[_T]]:
         try:
@@ -87,117 +96,127 @@ class Stream(Iterator[_T], Generic[_T]):
             return
 
     def filter(self, key: Callable[[_T], bool]) -> Stream[_T]:
-        def w(e: StreamResult[_T]):
-            if e.exc is not None:
-                return e
-            try:
-                return StreamResult(
-                    e.val, None, _SFlow.NORM if key(e.val) else _SFlow.SKIP
-                )
-            except Exception as exc:
-                return StreamResult(e.val, exc, _SFlow.NORM)
+        def w(e: StreamResult[_T]) -> StreamResult[_T]:
+            match e:
+                case StreamResult(val, None, _SFlow.NORM):
+                    try:
+                        if not key(val):
+                            return StreamResult(val, None, _SFlow.SKIP)
+                        return StreamResult(val)
+                    except Exception as exc:
+                        return StreamResult(val, exc, _SFlow.EXCP)
+                case _: return e
 
         self.__stack.append(w)
         return self
 
     def filterout(self, key: Callable[[_T], bool]) -> Stream[_T]:
-        def w(e: StreamResult[_T]):
-            if e.exc is not None:
-                return e
-            try:
-                return StreamResult(
-                    e.val, None, _SFlow.SKIP if key(e.val) else _SFlow.NORM
-                )
-            except Exception as exc:
-                return StreamResult(e.val, exc, _SFlow.NORM)
+        def w(e: StreamResult[_T]) -> StreamResult[_T]:
+            match e:
+                case StreamResult(val, None, _SFlow.NORM):
+                    try:
+                        if key(val):
+                            return StreamResult(val, None, _SFlow.SKIP)
+                        return StreamResult(val)
+                    except Exception as exc:
+                        return StreamResult(val, exc, _SFlow.EXCP)
+                case _: return e
 
         self.__stack.append(w)
         return self
 
     def stop(self, key: Callable[[_T], bool]) -> Stream[_T]:
         def w(e: StreamResult[_T]) -> StreamResult[_T]:
-            if e.exc is not None:
-                return e
-            try:
-                return StreamResult(
-                    e.val, None, _SFlow.STOP if key(e.val) else _SFlow.NORM
-                )
-            except Exception as exc:
-                return StreamResult(e.val, exc, _SFlow.NORM)
+            match e:
+                case StreamResult(val, None, _SFlow.NORM):
+                    try: 
+                        if not key(val):
+                            return StreamResult(val)
+                        return StreamResult(val, None, _SFlow.STOP)
+                    except Exception as exc:
+                        return StreamResult(val, exc, _SFlow.EXCP)
+                case _: return e
 
         self.__stack.append(w)
         return self
 
     def stopafter(self, key: Callable[[_T], bool]) -> Stream[_T]:
         def w(e: StreamResult[_T]) -> StreamResult[_T]:
-            if e.exc is not None:
-                return e
-            try:
-                return StreamResult(
-                    e.val, None, _SFlow.STAF if key(e.val) else _SFlow.NORM
-                )
-            except Exception as exc:
-                return StreamResult(e.val, exc, _SFlow.NORM)
+            match e:
+                case StreamResult(val, None, _SFlow.NORM):
+                    try: 
+                        if not key(val):
+                            return StreamResult(val)
+                        return StreamResult(val, None, _SFlow.STAF)
+                    except Exception as exc:
+                        return StreamResult(val, exc, _SFlow.EXCP)
+                case _: return e
 
         self.__stack.append(w)
         return self
 
     def limit(self, num: int) -> Stream[_T]:
-        localvars = [0]
-
-        def w(e: StreamResult[_T]) -> StreamResult[_T]:
-            if localvars[0] >= num:
-                return StreamResult(e.val, None, _SFlow.STOP)
-            localvars[0] += 1
-            return StreamResult(e.val)
-
-        self.__stack.append(w)
+        class w:
+            def __init__(self, limit:int=0) -> None:
+                self.count = 0
+                self.limit = limit
+            def __call__(self, e:StreamResult[_T]) -> StreamResult[_T]:
+                match e:
+                    case StreamResult(val, None, _SFlow.NORM):
+                        if self.count >= self.limit:
+                            return StreamResult(val, None, _SFlow.STOP)
+                        self.count += 1
+                        return StreamResult(val)
+                    case _: return e
+        
+        self.__stack.append(w(num))
         return self
 
     def eval(self, func: Callable[[_T], _R]) -> Stream[_R]:
         def w(e: StreamResult[_T]) -> StreamResult[_R | None]:
-            if e.exc is not None:
-                return e
-            try:
-                return StreamResult(func(e.val))
-            except Exception as exc:
-                return StreamResult(None, exc, _SFlow.NORM)
+            match e:
+                case StreamResult(val, None, _SFlow.NORM):
+                    try:
+                        return StreamResult(func(val))
+                    except Exception as exc:
+                        return StreamResult(val, exc, _SFlow.EXCP) # type: ignore
+                case _: return e # type: ignore
 
         self.__stack.append(w)
-        return self
+        return self # type: ignore
 
-    def exc(
-        self, exc: type[Exception], todo: Literal["skip", "stop"] = "skip"
-    ) -> Stream[_T]:
+
+    def exc(self, exct: type[Exception], todo: Literal["skip", "stop"] = "skip") -> Stream[_T]:
         def w(e: StreamResult[_T]) -> StreamResult[_T]:
-            if isinstance(e.exc, exc):
-                match todo:
-                    case "skip":
-                        return StreamResult(e.val, None, _SFlow.SKIP)
-                    case "stop":
-                        return StreamResult(e.val, None, _SFlow.STOP)
-            return e
+            match e:
+                case StreamResult(val, exct() as exc, _SFlow.EXCP):
+                    match todo:
+                        case "skip":
+                            return StreamResult(val, None, _SFlow.SKIP)
+                        case "stop":
+                            return StreamResult(val, None, _SFlow.STOP)
+                        case _: return e
+                case _: return e
 
         self.__stack.append(w)
         return self
 
-    def excg(
-        self, exc: type[Exception], todo: Literal["skip", "stop"] = "skip"
-    ) -> Stream[_T]:
+    def excg(self, exct: type[Exception], todo: Literal["skip", "stop"] = "skip") -> Stream[_T]:
         def w(e: StreamResult[_T]) -> StreamResult[_T]:
             do = False
-            if isinstance(e.exc, ExceptionGroup):
-                for x in e.exc.exceptions:
-                    if isinstance(x, exc):
-                        do = True
-            elif isinstance(e.exc, exc):
-                do = True
+            match e:
+                case StreamResult(val, ExceptionGroup() as excg, _SFlow.EXCP):
+                    if any(isinstance(ex,exct) for ex in excg.exceptions): do = True
+                case StreamResult(val, exct(), _SFlow.EXCP): do = True
+                case _: return e
+                
             if do:
                 match todo:
                     case "skip":
-                        return StreamResult(e.val, None, _SFlow.SKIP)
+                        return StreamResult(val, None, _SFlow.SKIP)
                     case "stop":
-                        return StreamResult(e.val, None, _SFlow.STOP)
+                        return StreamResult(val, None, _SFlow.STOP)
+                    case _: return e
             return e
 
         self.__stack.append(w)
@@ -205,48 +224,113 @@ class Stream(Iterator[_T], Generic[_T]):
 
     @property
     def unique(self):
-        cache = set[_T]()
-
-        def w(e: StreamResult[_T]) -> StreamResult[_T]:
-            if e.exc is not None:
-                return e
-            if e.val in cache:
-                return StreamResult(e.val, None, _SFlow.SKIP)
-            cache.add(e.val)
-            return StreamResult(e.val)
-
-        self.__stack.append(w)
+        class w:
+            def __init__(self) -> None:
+                self.cache = set[_T]()
+            def __call__(self, e: StreamResult[_T]) -> StreamResult[_T]:
+                match e:
+                    case StreamResult(val, None, _SFlow.NORM):
+                        if val in self.cache:
+                            return StreamResult(val, None, _SFlow.SKIP)
+                        self.cache.add(val)
+                        return StreamResult(val)
+                    case _: return e
+        
+        self.__stack.append(w())
         return self
+
+    @property
+    def duplicates(self):
+        class w:
+            def __init__(self) -> None:
+                self.cache = dict[_T,int]()
+            def __call__(self, e: StreamResult[_T]) -> StreamResult[_T]:
+                match e:
+                    case StreamResult(val, None, _SFlow.NORM):
+                        if val not in self.cache:
+                            self.cache[val] = 1
+                            return StreamResult(val, None, _SFlow.SKIP)
+                        if self.cache[val] == 1:
+                            self.cache[val] += 1
+                            return StreamResult(val)
+                        return StreamResult(val, None, _SFlow.SKIP)
+                    case _: return e
+        
+        self.__stack.append(w())
+        return self
+
+    def uniqueret(self, func: Callable[[_T], Any]):
+        class w:
+            def __init__(self) -> None:
+                self.cache = set()
+            def __call__(self, e: StreamResult[_T]) -> StreamResult[_T]:
+                match e:
+                    case StreamResult(val, None, _SFlow.NORM):
+                        try: ret = func(val)
+                        except Exception as exc:
+                            return StreamResult(val, exc, _SFlow.EXCP)
+                        if ret in self.cache:
+                            return StreamResult(val, None, _SFlow.SKIP)
+                        self.cache.add(ret)
+                        return StreamResult(val)
+                    case _: return e
+        
+        self.__stack.append(w())
+        return self
+    
+    def collisions(self, func: Callable[[_T], _R]) -> Stream[tuple[tuple[_T,_T],_R]]:
+        class w:
+            def __init__(self) -> None:
+                self.cache = dict[_R,_T]()
+            def __call__(self, e: StreamResult[_T]) -> StreamResult[tuple[tuple[_T,_T],_R]]:
+                match e:
+                    case StreamResult(val, None, _SFlow.NORM):
+                        try: ret = func(val)
+                        except Exception as exc:
+                            return StreamResult(((val,None),None), exc, _SFlow.EXCP) # type: ignore
+                        if ret in self.cache:
+                            old = self.cache[ret]
+                            return StreamResult(((val, old),ret))
+                        self.cache[ret] = val
+                        return StreamResult(((val,None),ret), None, _SFlow.SKIP) # type: ignore
+                    case _:
+                        return StreamResult(((e.val,None),None), e.exc, e.flw) # type: ignore
+        
+        self.__stack.append(w())
+        return self # type: ignore
 
     def call(self, func: Callable[..., _R]) -> Stream[_R]:
         def w(e: StreamResult[_T]) -> StreamResult[_R | None]:
-            if e.exc is not None:
-                return e
-            try:
-                match e.val:
-                    case [[*a], {**k}] | [{**k}, [*a]]:
-                        return StreamResult(func(*a, **k))
-                    case [*a]:
-                        return StreamResult(func(*a))
-                    case {**k}:
-                        return StreamResult(func(**k))
-                    case a:
-                        return StreamResult(func(a))
-            except Exception as exc:
-                return StreamResult(None, exc, _SFlow.NORM)
+            match e:
+                case StreamResult(val, None, _SFlow.NORM):
+                    try:
+                        match val:
+                            case [[*a], {**k}]:
+                                return StreamResult(func(*a, **k)) # type: ignore
+                            case [*a]:
+                                return StreamResult(func(*a))
+                            case {**k}:
+                                return StreamResult(func(**k))
+                            case a:
+                                return StreamResult(func(a))
+                    except Exception as exc:
+                        return StreamResult(val, exc, _SFlow.EXCP) # type: ignore
+                case _: return e # type: ignore
 
         self.__stack.append(w)
-        return self
+        return self # type: ignore
 
-    def act(self, func: Callable[[_T], _R]) -> Stream[_R]:
-        def w(e: StreamResult[_T]) -> StreamResult[_R | None]:
-            if e.exc is not None:
-                return e
-            try:
-                func(e.val)
-                return StreamResult(e.val)
-            except Exception as exc:
-                return StreamResult(None, exc, _SFlow.NORM)
+    def act(self, func: Callable[[_T], Any]) -> Stream[_T]:
+        def w(e: StreamResult[_T]) -> StreamResult[_T | None]:
+            match e:
+                case StreamResult(val, None, _SFlow.NORM):
+                    try:
+                        func(val)
+                        return StreamResult(val)
+                    except Exception as exc:
+                        return StreamResult(val, exc, _SFlow.EXCP)
+                case _: return e # type: ignore
+                # This error makes no sense 
 
         self.__stack.append(w)
         return self
@@ -256,13 +340,23 @@ class Stream(Iterator[_T], Generic[_T]):
 
     # def __gt__(self, out: Callable[[Iterable[_T]], Container[_T]]):
     #     return out(self)
-
-
-class callproperty(property):
-    def __call__(self, *args: Any, **kwds: Any) -> Any:
-        if self.fget is not None:
-            return self.fget(*args, **kwds)
-
+    @property
+    def list(self) -> list[_T]:
+        return list(self)
+    @property
+    def tuple(self) -> tuple[_T]:
+        return tuple(self)
+    @property
+    def set(self) -> set[_T]:
+        return set(self)
+    @property
+    def frozenset(self) -> frozenset[_T]:
+        return frozenset(self)
+    @property
+    def null(self) -> None:
+        for _ in self: pass
+    def print(self, format:str) -> None:
+        print("<" + ", ".join(self.eval(lambda x:x.__format__(format))) + ">")
 
 class streammeta(type):
     @property
@@ -308,12 +402,12 @@ class stream(metaclass=streammeta):
         return Stream(__iter)
 
     @staticmethod
-    def robin(*streams: Stream[Any]):
+    def robin(*streams: Stream[_T]) -> Stream[_T]:
         __iter = zip(*(s._iter_raw_() for s in streams))
-        return Stream((e for es in __iter for e in es), forceraw=True)
+        return Stream((e for es in __iter for e in es), forceraw=True) # type: ignore
 
     @staticmethod
-    def robin_longest(*streams: Stream[Any]):
+    def robin_longest(*streams: Stream[_T]) -> Stream[_T]:
         __sent = object()
         __iter = zip_longest(*(s._iter_raw_() for s in streams), fillvalue=__sent)
         return Stream(
@@ -337,7 +431,7 @@ class stream(metaclass=streammeta):
                     yield StreamResult(
                         None,
                         ExceptionGroup("Exceptions in stream iteration", exs),
-                        _SFlow.NORM,
+                        _SFlow.EXCP,
                     )
                 else:
                     yield (StreamResult(tuple(t.val for t in ts)))
@@ -357,7 +451,7 @@ class stream(metaclass=streammeta):
                     yield StreamResult(
                         None,
                         ExceptionGroup("Exceptions in stream iteration", exs),
-                        _SFlow.NORM,
+                        _SFlow.EXCP,
                     )
                 else:
                     yield (StreamResult(tuple(t.val for t in ts)))
@@ -377,6 +471,6 @@ class stream(metaclass=streammeta):
         return Stream((randint(a, b) for _ in count()))
 
 
-def null(__iter: Iterable[_T]) -> None:
+def null(__iter: Iterable[Any]) -> None:
     for _ in __iter:
         ...
