@@ -35,11 +35,14 @@ def test_eval_exc():
 def test_unique():
     assert list(stream.n0.eval(elm // 3).limit(10).unique) == [0, 1, 2, 3]
 
+
 def test_uniqueret():
     assert list(stream.n0.limit(5).uniqueret(elm // 3)) == [0, 3]
 
+
 def test_duplicates():
     assert list(stream.n0.eval(elm // 3).limit(10).duplicates) == [0, 1, 2]
+
 
 def test_collisions():
     assert list(stream.n0.limit(5).collisions(elm % 3)) == [((3, 0), 0), ((4, 1), 1)]
@@ -121,9 +124,10 @@ def test_call():
     ss = stream.range(5).eval(lambda x: x + 3).eval(range).call(lambda *x: sum(x))
     assert list(ss) == [3, 6, 10, 15, 21]
 
+
 def test_out():
     assert stream.n0.limit(2).list == [0, 1]
     assert stream.n0.limit(2).tuple == (0, 1)
     assert stream.n0.limit(2).set == {0, 1}
     assert stream.n0.limit(2).frozenset == frozenset((0, 1))
-    assert stream.n0.limit(2).null == None
+    assert stream.n0.limit(2).null is None

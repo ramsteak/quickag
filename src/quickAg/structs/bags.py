@@ -47,12 +47,14 @@ class AbstractBag(ABC, Mapping[_K, _V]):
 
     def popkey(self, key: _K) -> Collection[_V]:
         return self._data.pop(key)
-    
+
     def removekey(self, key: _K) -> None:
         self.popkey(key)
-    
+
     @abstractmethod
-    def removeitem(self, key: _K, value: _V) -> None:...
+    def removeitem(self, key: _K, value: _V) -> None:
+        ...
+
 
 class Bag(AbstractBag, Mapping[_K, _V]):
     def __init__(self) -> None:
@@ -74,6 +76,7 @@ class Bag(AbstractBag, Mapping[_K, _V]):
 
     def removeitem(self, key: _K, value: _V) -> None:
         self._data[key].remove(value)
+
 
 class Pouch(Bag, Mapping[_K, _V]):
     def __init__(self, key: Callable[[_V], _K]) -> None:
@@ -105,9 +108,10 @@ class Sack(AbstractBag, Mapping[_K, _V]):
 
     def popkey(self, key: _K) -> set[_V]:
         return self._data.pop(key)
-    
+
     def removeitem(self, key: _K, value: _V) -> None:
         self._data[key].remove(value)
+
 
 class Stash(Sack, Mapping[_K, _V]):
     def __init__(self, key: Callable[[_V], _K]) -> None:

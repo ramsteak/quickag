@@ -26,7 +26,7 @@ def is_prime(n: int) -> bool:
     return all(n % i != 0 for i in _quasiprimes(int(sqrt(n))))
 
 
-def primes(max: int|None = None) -> Iterator[int]:
+def primes(max: int | None = None) -> Iterator[int]:
     if max is None:
         _qp = _quasiprimes_count()
     else:
@@ -35,15 +35,17 @@ def primes(max: int|None = None) -> Iterator[int]:
         if is_prime(q):
             yield q
 
-def primefac(n:int) -> list[int]:
+
+def primefac(n: int) -> list[int]:
     r = [1]
     for p in primes(n):
-        while n%p == 0: 
+        while n % p == 0:
             r.append(p)
             n = n // p
     if n != 1:
         r.append(n)
     return r
+
 
 _t1000 = (
     2,

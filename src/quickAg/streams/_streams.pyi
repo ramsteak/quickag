@@ -105,32 +105,32 @@ class Stream(Iterator[_T], Generic[_T]):
         """
         The method keeps a cache of all unique elements and returns only the first
         occurence of each element."""
-    def uniqueret(self, func:Callable[[_T],_R]) -> Stream[_T]:
+    def uniqueret(self, func: Callable[[_T], _R]) -> Stream[_T]:
         """
-        The function keeps a cache of all return values for func and returns only 
+        The function keeps a cache of all return values for func and returns only
         the first element that return a specific value."""
     @property
     def duplicates(self) -> Stream[_T]:
         """
-        The method keeps a cache of all unique elements and returns them only 
+        The method keeps a cache of all unique elements and returns them only
         once, if a new element is already present in the cache. The elements may
         be out of order.
         stream((0,1,2,2,0,3,0,4,2)).duplicates) -> (2, 0)"""
-    def collisions(self, func: Callable[[_T], _R]) -> Stream[tuple[tuple[_T,_T],_R]]:
+    def collisions(self, func: Callable[[_T], _R]) -> Stream[tuple[tuple[_T, _T], _R]]:
         """
         The method keeps a cache of all results of the function func and returns
         only the elements for which there was a collision of the output value."""
     @property
-    def list(self) -> list[_T]:...
+    def list(self) -> list[_T]: ...
     @property
-    def tuple(self) -> tuple[_T]:...
+    def tuple(self) -> tuple[_T]: ...
     @property
-    def set(self) -> set[_T]:...
+    def set(self) -> set[_T]: ...
     @property
-    def frozenset(self) -> frozenset[_T]:...
+    def frozenset(self) -> frozenset[_T]: ...
     @property
-    def null(self) -> None:...
-    def print(self) -> None:...
+    def null(self) -> None: ...
+    def print(self) -> None: ...
 
     # UNDOCUMENTED METHODS (THEY ARE ONLY TO BE USED INTERNALLY):
     # These methods allow to operate on the StreamResults, the carrier object that
