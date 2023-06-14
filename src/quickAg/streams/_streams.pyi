@@ -19,6 +19,7 @@ class _SFlow(Enum):
     SKIP = 1
     STOP = 2
     STAF = 3
+    EXCP = 4
 
 _T = TypeVar("_T")
 _T1 = TypeVar("_T1")
@@ -31,8 +32,8 @@ _F = TypeVar("_F")
 
 class StreamResult(NamedTuple, Generic[_T]):
     val: _T
-    exc: Exception | None
-    flw: _SFlow
+    exc: Exception | None = None
+    flw: _SFlow = _SFlow.NORM
 
 class Stream(Iterator[_T], Generic[_T]):
     def __init__(self, __iter: Iterable[_T]): ...
@@ -68,6 +69,13 @@ class Stream(Iterator[_T], Generic[_T]):
         Evaluates the given function for each element of the stream, returning the
         result.
         """
+    def evr(self, func: Callable[[StreamResult[_T]], StreamResult[_R]]) -> Stream[_R]:
+        """
+        This method provides access to the inner working of the stream class,
+        in order to create new methods without extending the Stream class.
+        The given method must handle any and all exception raised in its calling,
+        returning the appropriate StreamResult.
+        In normal circumstances it is not to be used."""
     def call(self, func: Callable[..., _R]) -> Stream[_R]:
         """
         Calls the given function with the arguments from the stream. The parameters
@@ -130,8 +138,12 @@ class Stream(Iterator[_T], Generic[_T]):
     def frozenset(self) -> frozenset[_T]: ...
     @property
     def null(self) -> None: ...
-    def print(self) -> None: ...
-
+    def print(self, format: str = "") -> None: ...
+    @property
+    def stalin(self) -> Stream[_T]:
+        """
+        Does a stalinsort of the elements, returning an element only if larger
+        than the previous largest element."""
     # UNDOCUMENTED METHODS (THEY ARE ONLY TO BE USED INTERNALLY):
     # These methods allow to operate on the StreamResults, the carrier object that
     # streams use to handle flow, values and exceptions. They are used internally

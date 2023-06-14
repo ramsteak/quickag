@@ -191,6 +191,12 @@ class Stream(Iterator[_T], Generic[_T]):
         self.__stack.append(w)
         return self  # type: ignore
 
+    def evr(
+        self, funcraw: Callable[[StreamResult[_T]], StreamResult[_R]]
+    ) -> Stream[_R]:
+        self.__stack.append(funcraw)
+        return self  # type: ignore
+
     def exc(
         self, exct: type[Exception], todo: Literal["skip", "stop"] = "skip"
     ) -> Stream[_T]:
@@ -389,8 +395,36 @@ class Stream(Iterator[_T], Generic[_T]):
         for _ in self:
             pass
 
-    def print(self, format: str) -> None:
+    def print(self, format: str = "") -> None:
         print("<" + ", ".join(self.eval(lambda x: x.__format__(format))) + ">")
+
+    @property
+    def stalin(self) -> Stream[_T]:
+        class w:
+            def __init__(self) -> None:
+                self.max: _T
+                self.primed = False
+
+            def __call__(self, e: StreamResult[_T]) -> StreamResult[_T]:
+                match e:
+                    case StreamResult(val, None, _SFlow.NORM):
+                        if not self.primed:
+                            self.primed = True
+                            self.max = val
+                            return StreamResult(val)
+                        try:
+                            nmax = max(self.max, val)
+                        except Exception as exc:
+                            return StreamResult(val, exc, _SFlow.EXCP)
+                        if nmax != self.max:
+                            self.max = nmax
+                            return StreamResult(val)
+                        return StreamResult(val, None, _SFlow.SKIP)
+                    case _:
+                        return e
+
+        self.__stack.append(w())
+        return self  # type: ignore
 
 
 class streammeta(type):
