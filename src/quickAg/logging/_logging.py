@@ -4,6 +4,7 @@ from typing import Sequence, TypeAlias, TypeVar, Protocol, runtime_checkable
 filepath: TypeAlias = str
 _T_contra = TypeVar("_T_contra", contravariant=True)
 
+
 @runtime_checkable
 class SupportsWrite(Protocol[_T_contra]):
     def write(self, __s: _T_contra) -> object:
@@ -34,10 +35,10 @@ def _gethandler(
 
 def getlogger(
     loggername: str,
-    outputs: Sequence[filepath | SupportsWrite] |
-                Sequence[tuple[filepath|SupportsWrite, int|str]] |
-                filepath |
-                SupportsWrite,
+    outputs: Sequence[filepath | SupportsWrite]
+    | Sequence[tuple[filepath | SupportsWrite, int | str]]
+    | filepath
+    | SupportsWrite,
     level: int = logging.INFO,
     codenames: Sequence[str] = LOG_CODENAMES,
 ) -> logging.Logger:
