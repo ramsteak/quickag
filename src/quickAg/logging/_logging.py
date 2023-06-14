@@ -1,10 +1,10 @@
 import logging
-from typing import Sequence, TypeAlias, TypeVar, Protocol
+from typing import Sequence, TypeAlias, TypeVar, Protocol, runtime_checkable
 
-fname: TypeAlias = str
+filepath: TypeAlias = str
 _T_contra = TypeVar("_T_contra", contravariant=True)
 
-
+@runtime_checkable
 class SupportsWrite(Protocol[_T_contra]):
     def write(self, __s: _T_contra) -> object:
         ...
@@ -21,7 +21,7 @@ LOG_CODENAMES = ("DBG", "INF", "WRN", "ERR", "CRT")
 
 
 def _gethandler(
-    out: fname | SupportsWrite, level: int, formatter: logging.Formatter
+    out: filepath | SupportsWrite, level: int, formatter: logging.Formatter
 ) -> logging.FileHandler | logging.StreamHandler:
     if isinstance(out, str):
         hand = logging.FileHandler(out, "a+")
@@ -34,7 +34,10 @@ def _gethandler(
 
 def getlogger(
     loggername: str,
-    outputs: Sequence[fname | SupportsWrite] | fname | SupportsWrite,
+    outputs: Sequence[filepath | SupportsWrite] |
+                Sequence[tuple[filepath|SupportsWrite, int|str]] |
+                filepath |
+                SupportsWrite,
     level: int = logging.INFO,
     codenames: Sequence[str] = LOG_CODENAMES,
 ) -> logging.Logger:
@@ -48,15 +51,20 @@ def getlogger(
         "[%(levelname)s] %(asctime)s <%(name)s> : %(message)s", "%Y-%m-%d %H:%M:%S"
     )
 
-    if isinstance(outputs, str):
-        handler = _gethandler(outputs, level, logformatter)
-        log.addHandler(handler)
-    elif isinstance(outputs, Sequence):
-        for out in outputs:
-            handler = _gethandler(out, level, logformatter)
+    match outputs:
+        case str():
+            handler = _gethandler(outputs, level, logformatter)
             log.addHandler(handler)
-    else:
-        handler = _gethandler(outputs, level, logformatter)
-        log.addHandler(handler)
+        case SupportsWrite():
+            handler = _gethandler(outputs, level, logformatter)
+            log.addHandler(handler)
+        case [*_]:
+            for o in outputs:
+                if isinstance(o, tuple):
+                    out, lvl = o
+                    handler = _gethandler(out, lvl, logformatter)
+                else:
+                    handler = _gethandler(o, level, logformatter)
+                log.addHandler(handler)
 
     return log
