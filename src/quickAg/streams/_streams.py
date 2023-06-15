@@ -63,29 +63,31 @@ class Stream(Iterator[_T], Generic[_T]):
         return e.val
 
     def _next_raw_(self) -> StreamResult:
-        if self.__status == _SFlow.STOP:
-            raise StopIteration
-
-        try:
-            e = self.__iter.__next__()
-        except StopIteration:
-            e = StreamResult(None, None, _SFlow.STOP)
-
-        for ev in self.__stack:
-            e = ev(e)
-
-        match e.flw:
-            case _SFlow.NORM:
-                return e
-            case _SFlow.SKIP:
-                return self._next_raw_()
-            case _SFlow.STOP:
+        _do_ = True
+        while _do_:
+            if self.__status == _SFlow.STOP:
                 raise StopIteration
-            case _SFlow.STAF:
-                self.__status = _SFlow.STOP
-                return StreamResult(e.val, e.exc, _SFlow.NORM)
-            case _SFlow.EXCP:
-                return e
+
+            try:
+                e = self.__iter.__next__()
+            except StopIteration:
+                e = StreamResult(None, None, _SFlow.STOP)
+
+            for ev in self.__stack:
+                e = ev(e)
+
+            match e.flw:
+                case _SFlow.SKIP:
+                    continue
+                case _SFlow.NORM:
+                    return e
+                case _SFlow.STOP:
+                    raise StopIteration
+                case _SFlow.STAF:
+                    self.__status = _SFlow.STOP
+                    return StreamResult(e.val, e.exc, _SFlow.NORM)
+                case _SFlow.EXCP:
+                    return e
 
     def _iter_raw_(self) -> Iterator[StreamResult[_T]]:
         try:
