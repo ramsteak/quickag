@@ -132,5 +132,6 @@ def test_out():
     assert stream.n0.limit(2).frozenset == frozenset((0, 1))
     assert stream.n0.limit(2).null is None
 
+
 def test_recursionerror():
-    assert stream.n0.eval(lambda x:0).limit(999).unique.list == [0]
+    assert stream.n0.eval(lambda x: 0).limit(9999).unique.list == [0]

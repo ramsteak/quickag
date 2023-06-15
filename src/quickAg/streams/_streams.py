@@ -63,8 +63,7 @@ class Stream(Iterator[_T], Generic[_T]):
         return e.val
 
     def _next_raw_(self) -> StreamResult:
-        _do_ = True
-        while _do_:
+        while True:
             if self.__status == _SFlow.STOP:
                 raise StopIteration
 
