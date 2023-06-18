@@ -178,6 +178,7 @@ class Stream(Iterator[_T], Generic[_T]):
 
         self.__stack.append(w(num))
         return self
+
     take = limit
 
     def eval(self, func: Callable[[_T], _R]) -> Stream[_R]:
@@ -193,7 +194,7 @@ class Stream(Iterator[_T], Generic[_T]):
 
         self.__stack.append(w)
         return self  # type: ignore
-    
+
     map = eval
 
     def evr(
@@ -379,11 +380,13 @@ class Stream(Iterator[_T], Generic[_T]):
 
     # def __gt__(self, out: Callable[[Iterable[_T]], Container[_T]]):
     #     return out(self)
-    def reduce(self, func: Callable[[_T,_T], _T], defaultvalue:_D = None) -> _T|_D:
+    def reduce(self, func: Callable[[_T, _T], _T], defaultvalue: _D = None) -> _T | _D:
         try:
             res = next(self)
-        except StopIteration: return defaultvalue
-        for val in self: res = func(res, val)
+        except StopIteration:
+            return defaultvalue
+        for val in self:
+            res = func(res, val)
         return res
 
     @property
@@ -406,20 +409,24 @@ class Stream(Iterator[_T], Generic[_T]):
     def null(self) -> None:
         for _ in self:
             pass
-    
+
     @property
     def any(self) -> bool:
         return any(self)
+
     @property
     def all(self) -> bool:
         return all(self)
-    def groupby(self, func:Callable[[_T], _R]) -> dict[_R,list[_T]]:
-        ret = dict[_R,list[_T]]()
+
+    def groupby(self, func: Callable[[_T], _R]) -> dict[_R, list[_T]]:
+        ret = dict[_R, list[_T]]()
         for val in self:
             r = func(val)
-            if r not in ret: ret[r] = []
+            if r not in ret:
+                ret[r] = []
             ret[r].append(val)
         return ret
+
     def print(self, format: str = "") -> None:
         print("<" + ", ".join(self.eval(lambda x: x.__format__(format))) + ">")
 
@@ -438,7 +445,7 @@ class Stream(Iterator[_T], Generic[_T]):
                             self.max = val
                             return StreamResult(val)
                         try:
-                            nmax = max(self.max, val) # type: ignore
+                            nmax = max(self.max, val)  # type: ignore
                         except Exception as exc:
                             return StreamResult(val, exc, _SFlow.EXCP)
                         if nmax != self.max:
@@ -506,7 +513,7 @@ class stream(metaclass=streammeta):
         __iter = zip_longest(*(s._iter_raw_() for s in streams), fillvalue=__sent)
         return Stream(
             (e for es in __iter for e in es if e is not __sent), forceraw=True
-        ) # type: ignore
+        )  # type: ignore
 
     @staticmethod
     def cat(*streams: Stream[Any]) -> Stream[Any]:
@@ -550,7 +557,7 @@ class stream(metaclass=streammeta):
                 else:
                     yield (StreamResult(tuple(t.val for t in ts)))
 
-        return Stream(__iter(*streams), forceraw=True) # type: ignore
+        return Stream(__iter(*streams), forceraw=True)  # type: ignore
 
     @staticmethod
     def range(*args) -> Stream[int]:

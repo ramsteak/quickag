@@ -133,5 +133,22 @@ def test_out():
     assert stream.n0.limit(2).null is None
 
 
+def test_any_all():
+    assert stream.n0.any is True
+    assert stream.n0.all is False
+
+
+def test_groupby():
+    assert stream.n0.limit(5).groupby(even) == {False: [1, 3], True: [0, 2, 4]}
+
+
+def test_reduce():
+    assert stream.n0.limit(5).reduce(int.__add__) == 10
+
+
 def test_recursionerror():
     assert stream.n0.eval(lambda x: 0).limit(9999).unique.list == [0]
+
+
+def test_aliases():
+    assert stream.n0.take(5).map(lambda x: x).list == [0, 1, 2, 3, 4]
