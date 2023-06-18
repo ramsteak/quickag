@@ -64,11 +64,22 @@ class Stream(Iterator[_T], Generic[_T]):
         Counts the number of items and stops the stream after the given number is
         returned.
         """
+    def take(self, num: int) -> Stream[_T]:
+        """
+        Counts the number of items and stops the stream after the given number is
+        returned.
+        """
     def eval(self, func: Callable[[_T], _R]) -> Stream[_R]:
         """
         Evaluates the given function for each element of the stream, returning the
         result.
         """
+    def map(self, func: Callable[[_T], _R]) -> Stream[_R]:
+        """
+        Evaluates the given function for each element of the stream, returning the
+        result.
+        """
+
     def evr(self, func: Callable[[StreamResult[_T]], StreamResult[_R]]) -> Stream[_R]:
         """
         This method provides access to the inner working of the stream class,
@@ -128,6 +139,11 @@ class Stream(Iterator[_T], Generic[_T]):
         """
         The method keeps a cache of all results of the function func and returns
         only the elements for which there was a collision of the output value."""
+    def reduce(self, func: Callable[[_T, _T], _R]) -> _R:
+        """
+        Applies the given reduction function to the elements of the stream, 
+        returning the evaluated value.
+        """
     @property
     def list(self) -> list[_T]: ...
     @property
@@ -140,10 +156,20 @@ class Stream(Iterator[_T], Generic[_T]):
     def null(self) -> None: ...
     def print(self, format: str = "") -> None: ...
     @property
+    def any(self) -> bool:
+        """Evaluates the stream with the any function, returning its value."""
+    @property
+    def all(self) -> bool:
+        """Evaluates the stream with the all function, returning its value."""
+    def groupby(self, func:Callable[[_T],_R]) -> dict[_R, list[_T]]:
+        """Groups the values of the stream into a dict of lists"""
+    @property
     def stalin(self) -> Stream[_T]:
         """
         Does a stalinsort of the elements, returning an element only if larger
         than the previous largest element."""
+
+
     # UNDOCUMENTED METHODS (THEY ARE ONLY TO BE USED INTERNALLY):
     # These methods allow to operate on the StreamResults, the carrier object that
     # streams use to handle flow, values and exceptions. They are used internally
