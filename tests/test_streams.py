@@ -116,7 +116,7 @@ def test_range():
     assert list(stream.range(1, 11, 3)) == [1, 4, 7, 10]
 
 
-def test_count():
+def test_countgen():
     assert list(stream.count(2, 3).limit(3)) == [2, 5, 8]
 
 
@@ -136,6 +136,7 @@ def test_out():
 def test_any_all():
     assert stream.n0.any is True
     assert stream.n0.all is False
+    assert stream.n0.none is False
 
 
 def test_groupby():
@@ -152,3 +153,11 @@ def test_recursionerror():
 
 def test_aliases():
     assert stream.n0.take(5).map(lambda x: x).list == [0, 1, 2, 3, 4]
+
+
+def test_count():
+    assert stream.n0.limit(5).count == 5
+
+
+def test_skip():
+    assert stream.n0.skip(5).limit(5).list == [5, 6, 7, 8, 9]
