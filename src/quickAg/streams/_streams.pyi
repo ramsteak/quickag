@@ -69,6 +69,9 @@ class Stream(Iterator[_T], Generic[_T]):
         Counts the number of items and stops the stream after the given number is
         returned.
         """
+    def skip(self, num: int) -> Stream[_T]:
+        """
+        Counts the number of items and skips the first num elements"""
     def eval(self, func: Callable[[_T], _R]) -> Stream[_R]:
         """
         Evaluates the given function for each element of the stream, returning the
@@ -160,6 +163,12 @@ class Stream(Iterator[_T], Generic[_T]):
     @property
     def all(self) -> bool:
         """Evaluates the stream with the all function, returning its value."""
+    @property
+    def none(self) -> bool:
+        """Evaluates the stream with the any function, returning the opposite."""
+    @property
+    def count(self) -> int:
+        """Counts the number of elements in the stream, returning the value."""
     def groupby(self, func: Callable[[_T], _R]) -> dict[_R, list[_T]]:
         """Groups the values of the stream into a dict of lists"""
     @property

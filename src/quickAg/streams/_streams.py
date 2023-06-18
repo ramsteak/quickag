@@ -181,6 +181,25 @@ class Stream(Iterator[_T], Generic[_T]):
 
     take = limit
 
+    def skip(self, num: int) -> Stream[_T]:
+        class w:
+            def __init__(self, skip: int = 0) -> None:
+                self.count = 0
+                self.skip = skip
+
+            def __call__(self, e: StreamResult[_T]) -> StreamResult[_T]:
+                match e:
+                    case StreamResult(val, None, _SFlow.NORM):
+                        self.count += 1
+                        if self.count <= self.skip:
+                            return StreamResult(val, None, _SFlow.SKIP)
+                        return StreamResult(val)
+                    case _:
+                        return e
+
+        self.__stack.append(w(num))
+        return self
+
     def eval(self, func: Callable[[_T], _R]) -> Stream[_R]:
         def w(e: StreamResult[_T]) -> StreamResult[_R | None]:
             match e:
@@ -375,11 +394,6 @@ class Stream(Iterator[_T], Generic[_T]):
         self.__stack.append(w)
         return self
 
-    # def __or__(self, out: Callable[[Iterable[_T]], Container[_T]]):
-    #     return out(self)
-
-    # def __gt__(self, out: Callable[[Iterable[_T]], Container[_T]]):
-    #     return out(self)
     def reduce(self, func: Callable[[_T, _T], _T], defaultvalue: _D = None) -> _T | _D:
         try:
             res = next(self)
@@ -417,6 +431,14 @@ class Stream(Iterator[_T], Generic[_T]):
     @property
     def all(self) -> bool:
         return all(self)
+
+    @property
+    def none(self) -> bool:
+        return not any(self)
+
+    @property
+    def count(self) -> int:
+        return sum(1 for _ in self)
 
     def groupby(self, func: Callable[[_T], _R]) -> dict[_R, list[_T]]:
         ret = dict[_R, list[_T]]()
